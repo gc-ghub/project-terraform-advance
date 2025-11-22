@@ -1,0 +1,42 @@
+name: Terraform Apply (prod)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  apply-prod:
+    name: Apply to prod workspace
+    runs-on: ubuntu-latest
+    environment: 
+      name: prod   # configure this environment in repo settings and add required reviewers
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.9
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Select workspace prod
+        run: |
+          terraform workspace select prod || terraform workspace new prod
+
+      - name: Terraform apply to prod
+        run: terraform apply -input=false -auto-approve

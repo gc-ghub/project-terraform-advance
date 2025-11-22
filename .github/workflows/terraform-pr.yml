@@ -1,0 +1,55 @@
+name: Terraform PR checks (fmt, validate, plan)
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: fmt → init → validate → plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.9
+
+      - name: Install AWS CLI
+        run: sudo apt-get update && sudo apt-get install -y awscli
+
+      - name: Configure AWS credentials (from secrets)
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Select workspace (dev) and Terraform plan
+        env:
+          TF_WORKSPACE: dev
+        run: |
+          # ensure workspace exists
+          terraform workspace select ${TF_WORKSPACE} || terraform workspace new ${TF_WORKSPACE}
+          terraform plan -input=false -out=tfplan
+          terraform show -no-color tfplan > plan.txt
+      - name: Upload plan for PR (artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: plan.txt
