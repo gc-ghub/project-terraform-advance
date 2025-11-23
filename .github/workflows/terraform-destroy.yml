@@ -1,0 +1,46 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace:
+        description: "Choose workspace to destroy (dev or prod)"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+        - dev
+        - prod
+
+permissions:
+  contents: read
+
+jobs:
+  destroy:
+    name: Destroy Terraform Workspace
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.3.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform -chdir=stark_industries init -input=false
+
+      - name: Select workspace
+        run: terraform -chdir=stark_industries workspace select ${{ github.event.inputs.workspace }}
+
+      - name: Terraform Destroy
+        run: terraform -chdir=stark_industries destroy -auto-approve
