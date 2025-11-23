@@ -30,11 +30,11 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Terraform init
-        run: terraform init -input=false
+        run: terraform -chdir=stark_industries init -input=false
 
       - name: Select workspace dev
         run: |
-          terraform workspace select dev || terraform workspace new dev
+          terraform -chdir=stark_industries workspace select dev || terraform -chdir=stark_industries workspace new dev
 
       - name: Terraform apply
-        run: terraform apply -input=false -auto-approve
+        run: terraform -chdir=stark_industries apply -auto-approve

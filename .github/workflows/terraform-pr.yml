@@ -1,55 +1,75 @@
-name: Terraform PR checks (fmt, validate, plan)
+name: Terraform Pull Request Check
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, edited]
+    branches:
+      - dev
+      - main
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
-  terraform:
-    name: fmt → init → validate → plan
+  tf-pr-check:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Setup Terraform
+      - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.9.5
 
-      - name: Install AWS CLI
-        run: sudo apt-get update && sudo apt-get install -y awscli
-
-      - name: Configure AWS credentials (from secrets)
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ap-south-1
 
-      - name: Terraform fmt
-        run: terraform fmt -check -recursive
+      # ---------- Terraform Checks (NO APPLY) ----------
 
-      - name: Terraform init
-        run: terraform init -input=false
+      - name: Terraform Init
+        run: terraform -chdir=stark_industries init
 
-      - name: Terraform validate
-        run: terraform validate
+      - name: Terraform Format Check
+        run: terraform -chdir=stark_industries fmt -check -recursive
 
-      - name: Select workspace (dev) and Terraform plan
-        env:
-          TF_WORKSPACE: dev
+      - name: Terraform Validate
+        run: terraform -chdir=stark_industries validate
+
+      - name: Select correct workspace based on target branch
+        id: ws
         run: |
-          # ensure workspace exists
-          terraform workspace select ${TF_WORKSPACE} || terraform workspace new ${TF_WORKSPACE}
-          terraform plan -input=false -out=tfplan
-          terraform show -no-color tfplan > plan.txt
-      - name: Upload plan for PR (artifact)
-        uses: actions/upload-artifact@v4
+          if [[ "${{ github.base_ref }}" == "main" ]]; then
+            echo "workspace=prod" >> $GITHUB_OUTPUT
+          else
+            echo "workspace=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Select or create workspace
+        run: |
+          terraform -chdir=stark_industries workspace select ${{ steps.ws.outputs.workspace }} \
+          || terraform -chdir=stark_industries workspace new ${{ steps.ws.outputs.workspace }}
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform -chdir=stark_industries plan -no-color
+        continue-on-error: true
+
+      # ---------- Comment PLAN on Pull Request ----------
+      - name: Comment Terraform Plan on PR
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-          name: terraform-plan
-          path: plan.txt
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          header: terraform-plan
+          message: |
+            ## Terraform Plan Result
+            Workspace: **${{ steps.ws.outputs.workspace }}**
+
+            ```
+            ${{ steps.plan.outputs.stdout }}
+            ```
