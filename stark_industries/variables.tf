@@ -1,12 +1,14 @@
 variable "project_name" {
   description = "The name of the project"
   type        = string
+  default = "stark-industries"
 }
 
 
 variable "count_of_instances" {
   description = "Number of EC2 instances to launch"
   type        = number
+  default = 2
 }
 
 variable "ami_type" {

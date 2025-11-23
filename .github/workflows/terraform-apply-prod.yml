@@ -16,6 +16,9 @@ jobs:
       name: prod   # configure this environment in repo settings and add required reviewers
     env:
         TF_VAR_alert_email: "stark@gmail.com"
+        TF_VAR_ami_type: "ubuntu_2204"
+        TF_VAR_instance_type: "t3.micro"
+        TF_VAR_vpc_id: ${{ secrets.VPC_ID }}
 
     steps:
       - name: Checkout repo
