@@ -14,10 +14,15 @@ jobs:
   tf-pr-check:
     runs-on: ubuntu-latest
     env:
-        TF_VAR_alert_email: "stark@gmail.com"
+        TF_VAR_project_name: "stark-industries"
+        TF_VAR_count_of_instances: "1"
         TF_VAR_ami_type: "ubuntu_2204"
         TF_VAR_instance_type: "t3.micro"
+        TF_VAR_associate_public_ip_address: "true"
         TF_VAR_vpc_id: ${{ secrets.VPC_ID }}
+        TF_VAR_api_stage_name: "dev"
+        TF_VAR_alert_email: "stark@gmail.com"
+
 
     steps:
       - name: Checkout repo
