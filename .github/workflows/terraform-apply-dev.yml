@@ -12,6 +12,8 @@ jobs:
   apply-dev:
     name: Apply to dev workspace
     runs-on: ubuntu-latest
+    env:
+        TF_VAR_alert_email: "stark@gmail.com"
 
     steps:
       - name: Checkout repo

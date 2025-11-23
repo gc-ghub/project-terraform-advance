@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: 
       name: prod   # configure this environment in repo settings and add required reviewers
+    env:
+        TF_VAR_alert_email: "stark@gmail.com"
 
     steps:
       - name: Checkout repo

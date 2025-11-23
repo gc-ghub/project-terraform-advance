@@ -13,6 +13,8 @@ permissions:
 jobs:
   tf-pr-check:
     runs-on: ubuntu-latest
+    env:
+        TF_VAR_alert_email: "stark@gmail.com"
 
     steps:
       - name: Checkout repo
@@ -29,6 +31,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
+       
 
       # ---------- Terraform Checks (NO APPLY) ----------
 
