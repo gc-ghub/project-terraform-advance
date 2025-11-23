@@ -1,3 +1,5 @@
+# EC2 Instances
+
 resource "aws_instance" "webserver" {
   for_each = {
     for idx, az in local.selected_azs :
