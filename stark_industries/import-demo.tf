@@ -3,9 +3,9 @@
 #############################################
 
 resource "aws_instance" "import_demo" {
-  ami           = "ami-02b8269d5e85954ef"  # Ubuntu 22.04
+  ami           = "ami-02b8269d5e85954ef" # Ubuntu 22.04
   instance_type = "t3.micro"
-   tags = {
+  tags = {
     Name = "ec2_manual"
   }
 
