@@ -12,16 +12,20 @@ resource "aws_instance" "webserver" {
   availability_zone           = each.value
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
   key_name                    = aws_key_pair.web_key.key_name
-  user_data = templatefile("${path.module}/stark_industries_website.sh.tpl", {
-    project_name     = var.project_name
-    environment_name = local.env
+  user_data = templatefile(
+    "${path.module}/stark_industries_website.sh.tpl",
+    {
+      project_name     = var.project_name
+      environment_name = local.env
+      region           = data.aws_region.current.id
+      api_url        = "https://${aws_api_gateway_rest_api.metadata_api.id}.execute-api.${data.aws_region.current.id}.amazonaws.com/${aws_api_gateway_stage.metadata_stage.stage_name}/metadata"
+      upload_api_url = "https://${aws_api_gateway_rest_api.presigner_api.id}.execute-api.${data.aws_region.current.id}.amazonaws.com/dev/presign"
 
-    # EC2 metadata Lambda
-    api_url = "https://${aws_api_gateway_rest_api.metadata_api.id}.execute-api.${data.aws_region.current.id}.amazonaws.com/${aws_api_gateway_stage.metadata_stage.stage_name}/metadata"
 
-    # S3 presign API URL
-    upload_api_url = "https://${aws_api_gateway_rest_api.upload_api.id}.execute-api.${data.aws_region.current.id}.amazonaws.com/${aws_api_gateway_stage.upload_stage.stage_name}/presign"
-  })
+    }
+  )
+
+
 
 
   tags = merge(

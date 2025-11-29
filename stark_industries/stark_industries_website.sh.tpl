@@ -25,28 +25,29 @@ fi
 
 # Fetch instance metadata
 INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
-PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "none")
-INSTANCE_TYPE=$(curl -s http://169.254.169.254/latest/meta-data/instance-type)
-AMI_ID=$(curl -s http://169.254.169.254/latest/meta-data/ami-id)
 
 # Create Stark Industries HTML Page
-cat <<EOF > $${WEBROOT}/index.html
+cat <<'EOF' > /tmp/index.html.template
 <!DOCTYPE html>
 <html>
 <head>
-<title>Welcome to Stark Industries | ${project_name} | ${environment_name}</title>
+<title>Welcome to Stark Industries</title>
 <meta charset="UTF-8">
-<style>
 
+<style>
 body {
   background-color: #0b0b0b;
   color: #00eaff;
   font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- HEADER --- */
+.header {
   text-align: center;
   padding-top: 50px;
-  margin: 0;
 }
 
 h1 {
@@ -55,6 +56,7 @@ h1 {
   letter-spacing: 5px;
   margin-bottom: 10px;
   animation: glow 2s infinite alternate;
+  cursor: pointer;
 }
 
 @keyframes glow {
@@ -65,75 +67,94 @@ h1 {
 h2 {
   font-size: 26px;
   font-weight: 300;
-  margin-bottom: 30px;
   color: #9aefff;
 }
 
+/* --- ARC REACTOR SMALL + TOP LEFT --- */
 .arc-reactor {
-  margin: 40px auto;
-  width: 260px;
-  height: 260px;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  border: 12px solid #00eaff;
-  box-shadow: 0 0 30px #00eaff, inset 0 0 30px #00eaff;
+  border: 6px solid #00eaff;
+  box-shadow: 0 0 20px #00eaff, inset 0 0 20px #00eaff;
   animation: spin 6s linear infinite;
 }
 
 .core {
-  width: 140px;
-  height: 140px;
-  margin: 0 auto;
-  margin-top: 52px;
+  width: 55px;
+  height: 55px;
+  margin: 17px auto;
   border-radius: 50%;
   background: radial-gradient(circle, #00eaff, #003f4f, #000);
-  box-shadow: 0 0 40px #00eaff;
+  box-shadow: 0 0 20px #00eaff;
   animation: pulse 2s infinite alternate;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
+  0%   { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
 @keyframes pulse {
   from { transform: scale(1); }
-  to { transform: scale(1.08); }
+  to   { transform: scale(1.08); }
 }
 
-.metadata {
-  margin: 40px auto;
+/* --- MAIN EC2 METADATA BOX --- */
+.metadata-box {
+  width: 60%;
+  margin: 50px auto 20px auto;
+  padding: 20px;
   background: rgba(255,255,255,0.05);
   border: 1px solid rgba(0,234,255,0.2);
-  padding: 20px;
-  width: 60%;
   border-radius: 12px;
-  color: #d9ffff;
   text-align: left;
+  color: #d9ffff;
 }
-
-.metadata h3 {
-  text-align: center;
-  margin-bottom: 20px;
+.metadata-box h3 {
+  text-align: center; 
   color: #86f7ff;
 }
 
-.metadata p {
-  font-size: 16px;
-  margin: 8px 0;
+/* --- TWO COLUMN LAYOUT --- */
+.columns {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  width: 90%;
+  margin: 40px auto;
 }
 
-#apiResult {
+.column {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(0,234,255,0.2);
+  padding: 20px;
+  border-radius: 12px;
+  color: #d9ffff;
+}
+
+.column h3 {
+  text-align: center;
+  color: #86f7ff;
+  margin-top: 0;
+}
+
+/* Result boxes */
+pre {
   background: rgba(0,0,0,0.4);
   padding: 15px;
   border-radius: 10px;
-  color: #9aefff;
-  font-size: 14px;
-  white-space: pre-wrap;
   border: 1px solid #00eaff33;
-  margin-top: 20px;
+  white-space: pre-wrap;
+  color: #9aefff;
 }
 
-button.fetch-btn, button.upload-btn {
+/* Buttons */
+button {
   padding: 12px 24px;
   background-color: #00eaff;
   border: none;
@@ -142,69 +163,65 @@ button.fetch-btn, button.upload-btn {
   font-size: 18px;
   font-weight: bold;
   cursor: pointer;
-  margin-bottom: 20px;
+  margin: 10px 0;
   box-shadow: 0 0 15px #00eaff;
 }
-
-#uploadStatus {
-  background: rgba(0,0,0,0.4);
-  padding: 10px;
-  border-radius: 10px;
-  color: #9aefff;
-  border: 1px solid #00eaff33;
-  white-space: pre-wrap;
-}
-
-.footer {
-  margin-top: 50px;
-  font-size: 14px;
-  color: #7fbbc7;
-}
-
 </style>
 </head>
+
 <body>
 
-<h1>Stark Industries</h1>
-<h2>${project_name} — ${environment_name}</h2>
+<!-- ARC REACTOR -->
+<div class="arc-reactor"><div class="core"></div></div>
 
-<div class="arc-reactor">
-  <div class="core"></div>
+<!-- HEADER -->
+<div class="header">
+  <h1 onclick="location.href='/'">Stark Industries</h1>
+  <h2>{{PROJECT_NAME}} — {{ENVIRONMENT_NAME}}</h2>
 </div>
 
-<div class="metadata">
+<!-- EC2 METADATA -->
+<div class="metadata-box">
   <h3>EC2 Instance Metadata</h3>
+  <p><b>Instance ID:</b> {{INSTANCE_ID}}</p>
+  <p><b>Public IP:</b> {{PUBLIC_IP}}</p>
+</div>
 
-  <p><b>Instance ID:</b> ${"$"}{INSTANCE_ID}</p>
-  <p><b>Public IP:</b> ${"$"}{PUBLIC_IP}</p>
+<!-- TWO COLUMNS -->
+<div class="columns">
 
-  <h3>Live API Metadata</h3>
+  <!-- LEFT COLUMN -->
+  <div class="column">
+    <h3>Live API Metadata</h3>
+    <button onclick="fetchMetadata()">🚀 Fetch Live Metadata</button>
+    <pre id="apiResult">Click the button to load data...</pre>
+  </div>
 
-  <button class="fetch-btn" onclick="fetchMetadata()">🚀 Fetch Live Metadata</button>
+  <!-- RIGHT COLUMN -->
+  <div class="column">
+    <h3>Upload a File to S3</h3>
+    <input type="file" id="fileInput" />
+    <button onclick="startUpload()">📤 Upload File</button>
+    <pre id="uploadStatus">No upload started.</pre>
+  </div>
 
-  <pre id="apiResult">Click the button to load data...</pre>
-
-  <!-- 🚀 NEW SECTION — S3 UPLOAD UI -->
-  <h3>Upload a File to S3</h3>
-  <input type="file" id="fileInput" />
-  <button class="upload-btn" onclick="startUpload()">📤 Upload File</button>
-  <pre id="uploadStatus">No upload started.</pre>
 </div>
 
 <script>
+const METADATA_API = "{{API_URL}}";
+const PRESIGN_API  = "{{UPLOAD_API_URL}}";
+
 async function fetchMetadata() {
   const output = document.getElementById("apiResult");
-  output.innerHTML = "Fetching metadata from Stark API...";
+  output.innerHTML = "Fetching metadata...";
   try {
-    const response = await fetch("${api_url}");
-    const data = await response.json();
-    output.innerHTML = JSON.stringify(data, null, 2);
+    const res = await fetch(METADATA_API);
+    output.innerHTML = JSON.stringify(await res.json(), null, 2);
   } catch (err) {
     output.innerHTML = "Error: " + err;
   }
 }
 
-/* ⭐ NEW FUNCTION — S3 UPLOAD */
 async function startUpload() {
   const file = document.getElementById("fileInput").files[0];
   const status = document.getElementById("uploadStatus");
@@ -217,10 +234,9 @@ async function startUpload() {
   status.innerText = "Requesting presigned URL...";
 
   try {
-    // request presigned URL from your new API Gateway endpoint
-    const presign = await fetch("${upload_api_url}", {
+    const presign = await fetch(PRESIGN_API, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
         filename: file.name,
         content_type: file.type
@@ -238,7 +254,7 @@ async function startUpload() {
 
     const upload = await fetch(data.url, {
       method: "PUT",
-      headers: { "Content-Type": file.type },
+      headers: {"Content-Type": file.type},
       body: file
     });
 
@@ -247,10 +263,10 @@ async function startUpload() {
       return;
     }
 
-    status.innerText =
-      "✅ Upload successful!\n" +
-      "S3 Key: " + data.key + "\n" +
-      "Replication → Lambda → DynamoDB → SNS will trigger shortly.";
+    /* VS CODE FRIENDLY (NO RED LINES) */
+    status.innerText = `✅ Upload successful!
+S3 Key: $${data.key}
+Replication → Lambda → DynamoDB → SNS will trigger shortly.`;
 
   } catch (err) {
     status.innerText = "Error: " + err;
@@ -258,12 +274,17 @@ async function startUpload() {
 }
 </script>
 
-<div class="footer">
-  Powered by Terraform • AWS EC2 • Nginx • Iron Man UI v2 • Live API • S3 Uploads
-</div>
-
 </body>
 </html>
 EOF
+
+# Replace tokens using sed
+sed -e "s|{{PROJECT_NAME}}|${project_name}|g" \
+    -e "s|{{ENVIRONMENT_NAME}}|${environment_name}|g" \
+    -e "s|{{INSTANCE_ID}}|$INSTANCE_ID|g" \
+    -e "s|{{PUBLIC_IP}}|$PUBLIC_IP|g" \
+    -e "s|{{API_URL}}|${api_url}|g" \
+    -e "s|{{UPLOAD_API_URL}}|${upload_api_url}|g" \
+    /tmp/index.html.template > $${WEBROOT}/index.html
 
 systemctl restart nginx

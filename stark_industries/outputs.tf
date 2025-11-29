@@ -87,9 +87,10 @@ output "api_invoke_url" {
 }
 
 output "upload_api_invoke_url" {
-  description = "Invoke URL for S3 Presigner API"
-  value       = "https://${aws_api_gateway_rest_api.upload_api.id}.execute-api.${data.aws_region.current.id}.amazonaws.com/${aws_api_gateway_stage.upload_stage.stage_name}/presign"
+  value = "https://${aws_api_gateway_rest_api.presigner_api.id}.execute-api.${data.aws_region.current.id}.amazonaws.com/${aws_api_gateway_stage.presign_stage.stage_name}/presign"
+  description = "Presign API invoke URL (POST)"
 }
+
 
 ###############################################
 # DYNAMODB + SNS
@@ -128,4 +129,24 @@ output "replica_lambda_log_group" {
 
 output "presigner_lambda_log_group" {
   value = "/aws/lambda/${aws_lambda_function.presigner.function_name}"
+}
+
+################
+# CLOUD FRONT
+################
+output "cloudfront_domain_name" {
+  description = "The domain name of the CloudFront distribution"
+  value       = aws_cloudfront_distribution.website.domain_name
+}
+
+
+output "cloudfront_distribution_id" {
+  description = "The ID of the CloudFront distribution"
+  value       = aws_cloudfront_distribution.website.id
+}
+
+
+output "website_url" {
+  description = "Full HTTPS URL of the Stark Industries Web Portal"
+  value       = "https://${aws_cloudfront_distribution.website.domain_name}"
 }

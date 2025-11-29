@@ -192,7 +192,8 @@ resource "aws_s3_bucket_cors_configuration" "replica_cors" {
   bucket   = aws_s3_bucket.replica_bucket.id
 
   cors_rule {
-    allowed_headers = ["*"]
+    #allowed_headers = ["*"]
+    allowed_headers = ["*", "Content-Type", "x-amz-*"]
     allowed_methods = ["GET", "PUT", "POST", "HEAD"]
     allowed_origins = ["*"]
     expose_headers  = ["ETag", "x-amz-version-id"]
